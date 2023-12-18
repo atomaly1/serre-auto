@@ -8,7 +8,7 @@ import time
 import paho.mqtt.client as mqtt
 from threading import Thread
 import os
-import paramAndFunct as pmf
+import parametres as param
 import paho.mqtt.client as paho
 from streamlit.runtime.scriptrunner import add_script_run_ctx
 from rerunner import notify
@@ -154,7 +154,7 @@ def pageDonneesDirect():
         with col_status:
             st.write("Status de la serre")
             
-        donnees_greenhouse = pmf.filtrageDonnes(donnees_capteurs,[greenhouse],None,None,None)
+        donnees_greenhouse = param.filtrageDonnes(donnees_capteurs,[greenhouse],None,None,None)
         df_donnees_greenhouse = pd.DataFrame(donnees_greenhouse)
         #affichage des jauges et du status de la serre
         liste_capteurs = df_donnees_greenhouse["name"].unique()
@@ -162,19 +162,19 @@ def pageDonneesDirect():
         compteur = 0
         for columns in st.columns(nb_colonnes):
             with columns:
-                lastline = pmf.getlatestvalue(df_donnees_greenhouse,[greenhouse],[liste_capteurs[compteur]])
+                lastline = param.getlatestvalue(df_donnees_greenhouse,[greenhouse],[liste_capteurs[compteur]])
                 plot_gauge(lastline["value"].values[0],liste_capteurs[compteur],100,40,80)
                 st.write("dummys values")
             compteur += 1
 
         with st.expander("Dernière semaine", expanded=False):
             
-            donnees_greenhouse = pmf.filtrageDonnes(donnees_capteurs,[greenhouse],None,None,None)
+            donnees_greenhouse = param.filtrageDonnes(donnees_capteurs,[greenhouse],None,None,None)
             df_donnees_greenhouse = pd.DataFrame(donnees_greenhouse)
             #st.table(donnees_greenhouse)
             for capteurs in df_donnees_greenhouse["name"].unique():
                 print("capteurs est " +capteurs)
-                donnees_capteur = pmf.filtrageDonnes(donnees_greenhouse,None,[capteurs],None,None)
+                donnees_capteur = param.filtrageDonnes(donnees_greenhouse,None,[capteurs],None,None)
                 #st.table(donnees_capteur)
                 plot_chart(donnees_capteur)
 
@@ -288,7 +288,7 @@ def test():
     plot_gauge(76, "humidite", 100,20,80)
     plot_gauge(82, "anemometre", 100,20,80)
     data= load_data_db("db_sensors.db")
-    plot_chart(pmf.filtrageDonnes(data, ["serre_1"],["temperature","humidite"],datetime.datetime.today()-datetime.timedelta(days=19),datetime.datetime.today()))
+    plot_chart(param.filtrageDonnes(data, ["serre_1"],["temperature","humidite"],datetime.datetime.today()-datetime.timedelta(days=19),datetime.datetime.today()))
     #on message on fait un rerun mais on ajoute la data à la df ou alors on atends une sec et on rerun avec ducoup la nouvelle db?
     #idee faire un thread qui check si db change, si oui on rerun
 
