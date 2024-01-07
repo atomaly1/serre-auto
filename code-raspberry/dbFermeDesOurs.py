@@ -9,23 +9,18 @@ import time
 #### /!\ UNE PARTIE DE CE FICHIER DOIT ETRE INTEGRE DANS EnregistrementDB.py
 ##############################################################################################################################
 
-path = 'db_sensors.db'
 
-def addData (name,date,value,greenhouse):
+path = 'dbFermeDesOurs.db'
+
+def createTable():
     try:
         connexion = sqlite3.connect(path, detect_types=sqlite3.PARSE_DECLTYPES|sqlite3.PARSE_COLNAMES)
-        cursor = connexion.cursor()
-        print("Connected to SQLite")
-
-        #setUp_Table ='''CREATE TABLE IF NOT EXISTS tab_sensor_data_test( id INTEGER PRIMARY KEY AUTOINCREMENT UNIQUE, name TEXT, date timestamp, value REAL, greenhouse TEXT);'''
-        setUp_Table ='''CREATE TABLE IF NOT EXISTS tab_sensor_data_test( id INTEGER PRIMARY KEY AUTOINCREMENT UNIQUE, name TEXT, date TEXT, value REAL, greenhouse TEXT);'''
-
-        cursor.execute(setUp_Table)
-        insert_data = '''INSERT INTO tab_sensor_data_test(name, date, value, greenhouse) VALUES(?,?,?,?) WITH nolock;'''
-        data_tuples = (name,date,value,greenhouse)
-        cursor.execute(insert_data,data_tuples)
+        curseur = connexion.cursor()
+        print("Connecté à SQLite")
+        setUp_Table ='''CREATE TABLE IF NOT EXISTS tableReleveDonnees( id INTEGER PRIMARY KEY AUTOINCREMENT UNIQUE, topic TEXT, lieu TEXT, categorie TEXT,valeur REAL, date TEXT);'''
+        curseur.execute(setUp_Table)
         connexion.commit()
-        cursor.close()
+        curseur.close()
 
     except sqlite3.Error as error:
         print("Error while connecting to sqlite", error)
@@ -33,6 +28,29 @@ def addData (name,date,value,greenhouse):
         if connexion:
             connexion.close()
             print("The SQLite connection is closed")
+
+
+def addData (topic,lieu,categorie,valeur,date):
+    try:
+        connexion = sqlite3.connect(path, detect_types=sqlite3.PARSE_DECLTYPES|sqlite3.PARSE_COLNAMES)
+        curseur = connexion.cursor()
+        print("Connecté à SQLite")
+
+        setUp_Table ='''CREATE TABLE IF NOT EXISTS tableReleveDonnees( id INTEGER PRIMARY KEY AUTOINCREMENT UNIQUE, topic TEXT, lieu TEXT, categorie TEXT,valeur REAL, date TEXT);'''
+
+        curseur.execute(setUp_Table)
+        insert_data = '''INSERT INTO tableReleveDonnees(name, date, value, greenhouse) VALUES(?,?,?,?,?) WITH nolock;'''
+        data_tuples = (topic,lieu,categorie,valeur,date)
+        curseur.execute(insert_data,data_tuples)
+        connexion.commit()
+        curseur.close()
+
+    except sqlite3.Error as error:
+        print("Erreur lors de la connexion à sqlite", error)
+    finally:
+        if connexion:
+            connexion.close()
+            print("LA connexion SQLite a été fermée")
 
 # Récupère toutes les données de la base de données
 def getDataAll ():

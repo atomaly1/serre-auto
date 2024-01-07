@@ -6,6 +6,13 @@ import streamlit as st
 from streamlit.runtime import Runtime
 from streamlit.runtime.app_session import AppSession
 
+##############################################################################################################################
+#### Ce fichier python permet de relancer unfuchier streamlit python depuis un thread différent
+#### Source : https://github.com/streamlit/streamlit/issues/2838
+#### Version 1.0 du 06/01/2024
+##############################################################################################################################
+
+
 def get_browser_session_id() -> str:
    # Get the session_id for the current running script 
     try:
@@ -53,4 +60,3 @@ def notify() -> None:
     # this didn't work when I passed it in directly, I didn't really think too much about why not
     streamlit_session._handle_rerun_script_request()
 
-#source https://github.com/streamlit/streamlit/issues/2838

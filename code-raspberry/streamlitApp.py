@@ -12,20 +12,25 @@ import parametres as param
 import paho.mqtt.client as paho
 from streamlit.runtime.scriptrunner import add_script_run_ctx
 from rerunner import notify
+import sqlite3
 
-
-#streamlit run ./streamlit_app.py --server.port 8502 ou 8888
+##############################################################################################################################
+#### Ce fichier python est l'application streamlit web principale
+#### Version 1.0 du 06/01/2024
+#### Pour l'executer, taper la commande suivante dans le terminal : streamlit run ./streamlitApp.py --server.port 8502 ou 8888
+#streamlit run ./code-raspberry/streamlitApp.py --server.port 8502
+##############################################################################################################################
 
 #paramètres du prog
-os.chdir(r"C:\Users\alban\Documents\Drive_Alban\Cours\Alban\Mecatronique S9\Projet 4\prog")
+os.chdir(r"C:\Users\alban\Desktop\serre-auto\code-raspberry")
 
 #paramètres nécésaires au démarrage de streamlit
 st.set_page_config(page_title='Dashboard', page_icon='📊',layout='wide')
 
 #types et unitées
-dict_unite = {"temperature": "°C", "humidite": "%", "anemometre": "km/h"}
-dict_nom={"temperature": "Température", "humidite": "Humidité", "anemometre": "Vitesse du vent"}
-dict_couleurs = {"temperature": "red", "humidite": "royalblue", "anemometre": "goldenrod"}
+dict_unite = {"temperature": "°C", "humidite": "%", "Anemometre": "km/h"}
+dict_nom={"temperature": "Température", "humidite": "Humidité", "Anemometre": "Vitesse du vent"}
+dict_couleurs = {"temperature": "red", "humidite": "royalblue", "Anemometre": "goldenrod"}
 
 #variables globales
 donnees_capteurs=pd.DataFrame
@@ -44,7 +49,9 @@ def setupPage():
 def load_data_db(path: str)->pd.DataFrame:
     while True:
         try:
-            data= pd.read_sql('SELECT * FROM tab_sensor_data_test', 'sqlite:///db_sensors.db')
+            connexion = sqlite3.connect(path, detect_types=sqlite3.PARSE_DECLTYPES|sqlite3.PARSE_COLNAMES)
+
+            data= pd.read_sql('SELECT * FROM tableReleveDonnees', connexion)
             break
         except Exception as e:
             print(f"Error while loading data from database: {e} \n Retrying in 1s...")
@@ -67,7 +74,7 @@ def thread_rerun():
 
 #graphique
 def plot_gauge(valeur, typeDonnees, valeurMax,seuilBas,seuilHaut):
-    if typeDonnees=="anemometre":
+    if typeDonnees=="Anemometre":
         couleurSeuilHaut="red"
         couleurSeuilBas=None
         couleurDomaine =None
@@ -110,14 +117,14 @@ def plot_chart(data: pd.DataFrame):
     """
     Plot les données d'un capteur
     """
-    for sensor in data["name"].unique():
+    for sensor in data["categorie"].unique():
         # Filter data for the current sensor
         st.header(dict_nom[sensor])
-        sensor_data = data[data["name"] == sensor]
+        sensor_data = data[data["categorie"] == sensor]
         fig = go.Figure(
             go.Scatter(
                 x=sensor_data["date"],
-                y=sensor_data["value"],
+                y=sensor_data["valeur"],
                 mode="lines+markers",
                 marker=dict(color=dict_couleurs[sensor]),
             )
@@ -140,41 +147,41 @@ def pageDonneesDirect():
     st.header("Données direct", divider="grey")
     with st.spinner("Chargement des données..."):
         global donnees_capteurs
-        donnees_capteurs=load_data_db("db_sensors.db")
+        donnees_capteurs=load_data_db("dbFermeDesOurs.db")# path a changer : pas le bon
         time.sleep(1)
     thread_reload = Thread(target=thread_rerun)
     add_script_run_ctx(thread_reload)
     thread_reload.start()
-    for greenhouse in donnees_capteurs["greenhouse"].unique():
-        print("greenhouse est " +greenhouse)
+    for lieu in donnees_capteurs["lieu"].unique():
+        print("lieu est " +lieu)
         #print les jauges (hum et temp en 2 colonnes)
         col_header, col_status = st.columns(2)
         with col_header:
-            st.header("Données de "+str(greenhouse))
+            st.header("Données de "+str(lieu))
         with col_status:
             st.write("Status de la serre")
             
-        donnees_greenhouse = param.filtrageDonnes(donnees_capteurs,[greenhouse],None,None,None)
-        df_donnees_greenhouse = pd.DataFrame(donnees_greenhouse)
+        donnees_lieu = param.filtrageDonnes(donnees_capteurs,[lieu],None,None,None)
+        df_donnees_lieu = pd.DataFrame(donnees_lieu)
         #affichage des jauges et du status de la serre
-        liste_capteurs = df_donnees_greenhouse["name"].unique()
+        liste_capteurs = df_donnees_lieu["categorie"].unique()
         nb_colonnes = liste_capteurs.size
         compteur = 0
         for columns in st.columns(nb_colonnes):
             with columns:
-                lastline = param.getlatestvalue(df_donnees_greenhouse,[greenhouse],[liste_capteurs[compteur]])
-                plot_gauge(lastline["value"].values[0],liste_capteurs[compteur],100,40,80)
+                lastline = param.getlatestvalue(df_donnees_lieu,[lieu],[liste_capteurs[compteur]])
+                plot_gauge(lastline["valeur"].values[0],liste_capteurs[compteur],100,40,80)
                 st.write("dummys values")
             compteur += 1
 
         with st.expander("Dernière semaine", expanded=False):
             
-            donnees_greenhouse = param.filtrageDonnes(donnees_capteurs,[greenhouse],None,None,None)
-            df_donnees_greenhouse = pd.DataFrame(donnees_greenhouse)
-            #st.table(donnees_greenhouse)
-            for capteurs in df_donnees_greenhouse["name"].unique():
+            donnees_lieu = param.filtrageDonnes(donnees_capteurs,[lieu],None,None,None)
+            df_donnees_lieu = pd.DataFrame(donnees_lieu)
+            #st.table(donnees_lieu)
+            for capteurs in df_donnees_lieu["categorie"].unique():
                 print("capteurs est " +capteurs)
-                donnees_capteur = param.filtrageDonnes(donnees_greenhouse,None,[capteurs],None,None)
+                donnees_capteur = param.filtrageDonnes(donnees_lieu,None,[capteurs],None,None)
                 #st.table(donnees_capteur)
                 plot_chart(donnees_capteur)
 
@@ -183,7 +190,7 @@ def pageDonnesHistorique():
     st.write("Historique des données")
     with st.spinner("Chargement des données..."):
         global donnees_capteurs
-        donnees_capteurs=load_data_db("db_sensors.db")
+        donnees_capteurs=load_data_db("dbFermeDesOurs.db")
         time.sleep(1)
     zone_de_tri = st.form(key='zone_appercu_donnees', clear_on_submit=False)
     zone_d_enregistrement = st.form(key='zone_enregistrement_donnees', clear_on_submit=False)   
@@ -210,11 +217,11 @@ def pageDonnesHistorique():
             
         #zone de sélection de la serre
         st.subheader("Choisir une serre : ", divider="grey")
-        serre_selected = st.selectbox('blalba', donnees_capteurs['greenhouse'].unique())
+        serre_selected = st.selectbox('blalba', donnees_capteurs['lieu'].unique())
 
         #zone de sélection des capteurs
         st.subheader("Choisir un ou plusieurs capteur(s)", divider="grey")
-        capteur_selected = st.multiselect('blabla', donnees_capteurs['name'].unique())
+        capteur_selected = st.multiselect('blabla', donnees_capteurs['categorie'].unique())
 
         #zone d'apperçu des données suivant les paramètres selectionnés
         st.subheader("Apperçu des données", divider="grey")
@@ -241,19 +248,19 @@ def pageDonnesHistorique():
         date_heure_fin_selectionnee = datetime.datetime.combine(date_fin_selectionnee, heure_fin_selectionnee)
         #filtrer les données suivant les paramètres selectionnés
         data_filtre_affichage = donnees_capteurs[(pd.to_datetime(donnees_capteurs['date']) >= date_heure_debut_selectionnee) & (pd.to_datetime(donnees_capteurs['date']) <= date_heure_fin_selectionnee)].copy()
-        data_filtre_affichage = data_filtre_affichage[data_filtre_affichage['greenhouse']==serre_selected].copy()
-        data_filtre_affichage = data_filtre_affichage[data_filtre_affichage['name'].isin(capteur_selected)].copy()
+        data_filtre_affichage = data_filtre_affichage[data_filtre_affichage['lieu']==serre_selected].copy()
+        data_filtre_affichage = data_filtre_affichage[data_filtre_affichage['categorie'].isin(capteur_selected)].copy()
         print("data filtrée: " + str(data_filtre_affichage))
         with zone_affichage.container():
             linechart_historique = pd.DataFrame(data_filtre_affichage)
-            fig_grange_anem = px.line(linechart_historique, x="date", y="value",color='name',template='gridon', height=400)
+            fig_grange_anem = px.line(linechart_historique, x="date", y="valeur",color='categorie',template='gridon', height=400)
             st.plotly_chart(fig_grange_anem, use_container_width=True)
     if bouton_enregistrement:
         date_heure_debut_selectionnee = datetime.datetime.combine(date_debut_selectionnee, heure_debut_selectionnee)
         date_heure_fin_selectionnee = datetime.datetime.combine(date_fin_selectionnee, heure_fin_selectionnee)
         data_filtre_affichage = donnees_capteurs[(pd.to_datetime(donnees_capteurs['date']) >= date_heure_debut_selectionnee) & (pd.to_datetime(donnees_capteurs['date']) <= date_heure_fin_selectionnee)].copy()
-        data_filtre_affichage = data_filtre_affichage[data_filtre_affichage['greenhouse']==serre_selected].copy()
-        data_filtre_affichage = data_filtre_affichage[data_filtre_affichage['name'].isin(capteur_selected)].copy()
+        data_filtre_affichage = data_filtre_affichage[data_filtre_affichage['lieu']==serre_selected].copy()
+        data_filtre_affichage = data_filtre_affichage[data_filtre_affichage['categorie'].isin(capteur_selected)].copy()
         nom_fichier_csv = nom_enregistrement+'.csv'
         data_frame_filtre_affichage = pd.DataFrame(data_filtre_affichage)
         #enregistrer les données filtrées dans un csv
@@ -286,8 +293,8 @@ def test():
     setupPage()
     plot_gauge(60, "temperature", 100,40,80)
     plot_gauge(76, "humidite", 100,20,80)
-    plot_gauge(82, "anemometre", 100,20,80)
-    data= load_data_db("db_sensors.db")
+    plot_gauge(82, "Anemometre", 100,20,80)
+    data= load_data_db("dbFermeDesOurs.db")
     plot_chart(param.filtrageDonnes(data, ["serre_1"],["temperature","humidite"],datetime.datetime.today()-datetime.timedelta(days=19),datetime.datetime.today()))
     #on message on fait un rerun mais on ajoute la data à la df ou alors on atends une sec et on rerun avec ducoup la nouvelle db?
     #idee faire un thread qui check si db change, si oui on rerun
