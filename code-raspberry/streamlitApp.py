@@ -164,6 +164,9 @@ def pageDonneesDirect():
         donnees_lieu = param.filtrageDonnes(donnees_capteurs,[lieu],None,None,None)
         df_donnees_lieu = pd.DataFrame(donnees_lieu)
         #affichage des jauges et du status de la serre
+
+#TODO ajouter selection 1h 12h 24h 
+
         liste_capteurs = df_donnees_lieu["categorie"].unique()
         nb_colonnes = liste_capteurs.size
         compteur = 0
@@ -319,6 +322,8 @@ def menuPage(): #ok
         pageConsignesSerres()
     if selected == "Profils des serres":
         pageProfilsSerres()
+
+    #TODO PAge avec les logsss erreurs et tt
 
 def test():
     setupPage()

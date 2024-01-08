@@ -84,6 +84,12 @@ while True:
     #valeurVent = releveVent(temporisationReleves) #valable pour l'anemometre final
     
     valeurVent= random.randrange (valeurAleatoire-3,valeurAleatoire+3,1)
+    if valeurVent <0:
+        valeurVent = 0
+    elif valeurVent>100:
+        valeurVent = 100
+    
+    valeurAleatoire= valeurVent
     dictionnaireMessage = {"valeuMoyenne": valeurVent ,"date":str(datetime.datetime.now())}
     #exemple de reglage :     dictionnaireParametres = {"groupe":"grange","capteur": "anemometre","valeurMin": 0.0 , "valeurMax": 20.0 ,"date":str(datetime.datetime.now())}
 

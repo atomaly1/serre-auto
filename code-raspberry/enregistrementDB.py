@@ -128,7 +128,7 @@ mqtt_client.loop_start()
 mqtt_client.subscribe(param.topicGrangeAnemoDonnees)
 mqtt_client.subscribe(param.topicGrangeAnemoParamRep)
 
-print("va dans le while")
+
 while(True):
         time.sleep(0.05)
 

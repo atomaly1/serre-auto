@@ -5,6 +5,7 @@
 
 listeLois = {"Loi 1","Loi 2"}
 
+#TODO fonction recuperer les données ( temp hum vent) d'un lieu précis
 
 
 
