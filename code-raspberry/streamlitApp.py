@@ -269,6 +269,37 @@ def pageDonnesHistorique():
 
 def pageConsignesSerres():
     st.header("Consignes des serres", divider="grey")
+    with st.expander("grange", expanded=True):
+        form_grange = st.form(key='form_grange')
+        with form_grange:
+            valeur_vent_max = st.slider('Selectionner une valeur de vent max pour les serres', 0.0, 200.0, 50.0)
+            st.write('consigne actuelle vent max:', valeur_vent_max)
+            bouton_save_form_grange = st.form_submit_button(label="Sauvegarder les consignes")
+    with st.expander("serre 1", expanded=True):
+        form_serre_1 = st.form(key='form_serre_1')
+        with form_serre_1:
+            col_temp, col_hum = st.columns(2)
+            with col_temp:
+                valeur_temp_serre_1 = st.slider('Selectionner une valeur de température min et max pour la serre 1', 10.0, 50.0, (20.0, 25.0))
+                st.write('consigne actuelle température serre 1:', valeur_temp_serre_1)
+            with col_hum:
+                valeur_hum_serre_1 = st.slider('Selectionner une valeur d humidité min et max pour la serre 1', 0.0, 100.0, (40.0, 50.0))
+                st.write('consigne actuelle humidité serre 1:', valeur_hum_serre_1)
+            bouton_save_form_serre_1 = st.form_submit_button(label="Sauvegarder les consignes")
+    with st.expander("serre 2", expanded=True):
+        form_serre_2 = st.form(key='form_serre_2')
+        with form_serre_2:
+            col_temp, col_hum = st.columns(2)
+            with col_temp:
+                valeur_temp_serre_2 = st.slider('Selectionner une valeur de température min et max pour la serre 2', 10.0, 50.0, (20.0, 25.0))
+                st.write('consigne actuelle température serre 2:', valeur_temp_serre_2)
+            with col_hum:
+                valeur_hum_serre_2 = st.slider('Selectionner une valeur d humidité min et max pour la serre 2', 0.0, 100.0, (40.0, 50.0))
+                st.write('consigne actuelle humidité serre 2:', valeur_hum_serre_2)
+            bouton_save_form_serre_2 = st.form_submit_button(label="Sauvegarder les consignes")
+    with st.expander("serre 3", expanded=True):
+        pass
+
 
 def pageProfilsSerres():    
     st.header("Gestion des profils", divider="grey")

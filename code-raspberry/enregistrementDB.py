@@ -22,7 +22,7 @@ import time
 
 path = 'dbFermeDesOurs.db'
 
-def createTable():
+def creationTableReleveDonnes():
     try:
         connexion = sqlite3.connect(path, detect_types=sqlite3.PARSE_DECLTYPES|sqlite3.PARSE_COLNAMES)
         curseur = connexion.cursor()
@@ -38,7 +38,7 @@ def createTable():
             connexion.close()
             print("The SQLite connection is closed")
 
-def enregistrerValeur(topic, lieu, categorie, valeur,date):
+def enregistrerReleveDonnes(topic, lieu, categorie, valeur,date):
     try:
         connexion = sqlite3.connect(path, detect_types=sqlite3.PARSE_DECLTYPES|sqlite3.PARSE_COLNAMES)
         curseur = connexion.cursor()
@@ -55,8 +55,45 @@ def enregistrerValeur(topic, lieu, categorie, valeur,date):
             connexion.close()
             print("The SQLite connection is closed")
 
+################ Table Consignes ###############
+
+path = 'dbFermeDesOurs.db'
+
+def creationTableConsignes():
+    try:
+        connexion = sqlite3.connect(path, detect_types=sqlite3.PARSE_DECLTYPES|sqlite3.PARSE_COLNAMES)
+        curseur = connexion.cursor()
+        print("Connecté à SQLite")
+        setUp_Table ='''CREATE TABLE IF NOT EXISTS tableReleveDonnees( id INTEGER PRIMARY KEY AUTOINCREMENT UNIQUE, topic TEXT, lieu TEXT, categorie TEXT,valeur REAL, date TEXT);'''
+        curseur.execute(setUp_Table)
+        connexion.commit()
+        curseur.close()
+    except sqlite3.Error as error:
+        print("Error while connecting to sqlite", error)
+    finally:
+        if connexion:
+            connexion.close()
+            print("The SQLite connection is closed")
+
+def enregistrerConsignes(topic, lieu, categorie, valeur,date):
+    try:
+        connexion = sqlite3.connect(path, detect_types=sqlite3.PARSE_DECLTYPES|sqlite3.PARSE_COLNAMES)
+        curseur = connexion.cursor()
+        print("Connected to SQLite")
+        insert_data = '''INSERT INTO tableReleveDonnees(topic, lieu, categorie, valeur,date) VALUES(?,?,?,?,?) ;'''
+        data_tuples = (topic,lieu,categorie, valeur,date)
+        curseur.execute(insert_data,data_tuples)
+        connexion.commit()
+        curseur.close()
+    except sqlite3.Error as error:
+        print("Error while connecting to sqlite", error)
+    finally:
+        if connexion:
+            connexion.close()
+            print("The SQLite connection is closed")            
+
 def insertDummies():
-    enregistrerValeur("FermeDesOurs/Grange/Capteurs/Anemometre/Donnees","Grange","Anemometre",22.0,"'2024-01-07 20:28:04.320'")
+    enregistrerReleveDonnes("FermeDesOurs/Grange/Capteurs/Anemometre/Donnees","Grange","Anemometre",22.0,"'2024-01-07 20:28:04.320'")
 
     ################ MQTT ###############
 
@@ -72,7 +109,7 @@ def on_message(client, userdata, msg):
     if topic == param.topicGrangeAnemoDonnees:
         message_in=json.loads(message_decode)
         print("valeur relevée: "+str(message_in["valeuMoyenne"]) +" date de relevé : " + str(message_in["date"]))
-        enregistrerValeur("FermeDesOurs/Grange/Capteurs/Anemometre/Donnees","Grange","Anemometre",str(message_in["valeuMoyenne"]) ,str(message_in["date"]))
+        enregistrerReleveDonnes("FermeDesOurs/Grange/Capteurs/Anemometre/Donnees","Grange","Anemometre",str(message_in["valeuMoyenne"]) ,str(message_in["date"]))
         #récupérer les 3 premiers chants soit dans le topic soit changer le json
     
     
@@ -81,7 +118,7 @@ def on_disconnect(client, userdata, rc):
     if rc != 0: 
         print("Unexpected MQTT disconnection. Will auto-reconnect")
 
-createTable()
+creationTableReleveDonnes()
 
 mqtt_client = mqtt.Client()
 mqtt_client.on_connect = on_connect
