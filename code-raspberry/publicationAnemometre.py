@@ -90,10 +90,13 @@ while True:
         valeurVent = 100
     
     valeurAleatoire= valeurVent
-    dictionnaireMessage = {"valeuMoyenne": valeurVent ,"date":str(datetime.datetime.now())}
+    dictionnaireMessage = {"lieu":"grange","categorie":"anemometre","valeur": valeurVent ,"date":str(datetime.datetime.now())}
     #exemple de reglage :     dictionnaireParametres = {"groupe":"grange","capteur": "anemometre","valeurMin": 0.0 , "valeurMax": 20.0 ,"date":str(datetime.datetime.now())}
 
     jsonMessage = json.dumps(dictionnaireMessage)
 
     mqtt_client.publish(param.topicGrangeAnemoDonnees,jsonMessage)
     sleep(temporisationEnvoi)
+
+
+

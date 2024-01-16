@@ -307,6 +307,12 @@ def pageConsignesSerres():
 def pageProfilsSerres():    
     st.header("Gestion des profils", divider="grey")
 
+    option = st.selectbox(
+    'profile de la serre 1',
+    ('profil1', 'profil2', 'profil3'))
+
+    st.write('You selected:', option) 
+
 def menuPage(): #ok
     global selected
     selected = option_menu(

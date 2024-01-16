@@ -14,86 +14,42 @@ import time
 
 
 ################ dbFermeDesOurs.py ################
+path = 'dbFermeDesOursV2.db'
 
-
-################ Creation des tables ###############
-
-################ Table Releve Donnees ###############
-
-path = 'dbFermeDesOurs.db'
-
-def creationTableReleveDonnes():
+def creationTable(nomTable, commandeSQL):
     try:
         connexion = sqlite3.connect(path, detect_types=sqlite3.PARSE_DECLTYPES|sqlite3.PARSE_COLNAMES)
         curseur = connexion.cursor()
-        print("Connecté à SQLite")
-        setUp_Table ='''CREATE TABLE IF NOT EXISTS tableReleveDonnees( id INTEGER PRIMARY KEY AUTOINCREMENT UNIQUE, topic TEXT, lieu TEXT, categorie TEXT,valeur REAL, date TEXT);'''
+        print("Connecté à SQLite" + path)
+        setUp_Table = commandeSQL
         curseur.execute(setUp_Table)
         connexion.commit()
         curseur.close()
     except sqlite3.Error as error:
-        print("Error while connecting to sqlite", error)
+        print("erreur de connection a la base ou la "+ nomTable, error)
     finally:
         if connexion:
             connexion.close()
-            print("The SQLite connection is closed")
+            print(nomTable + " a été créée. Fermeture de la connection a la base de donnees")
 
-def enregistrerReleveDonnes(topic, lieu, categorie, valeur,date):
+
+def enregistrerTable(nomTable, commandeSQL, data_tuples):
     try:
         connexion = sqlite3.connect(path, detect_types=sqlite3.PARSE_DECLTYPES|sqlite3.PARSE_COLNAMES)
         curseur = connexion.cursor()
-        print("Connected to SQLite")
-        insert_data = '''INSERT INTO tableReleveDonnees(topic, lieu, categorie, valeur,date) VALUES(?,?,?,?,?) ;'''
-        data_tuples = (topic,lieu,categorie, valeur,date)
-        curseur.execute(insert_data,data_tuples)
+        print("Connecté à SQLite" + path)
+        curseur.execute(commandeSQL,data_tuples)
         connexion.commit()
         curseur.close()
     except sqlite3.Error as error:
-        print("Error while connecting to sqlite", error)
-    finally:
+        print("erreur de connection a la base ou a"+ nomTable , error)
+    finally: 
         if connexion:
             connexion.close()
-            print("The SQLite connection is closed")
-
-################ Table Consignes ###############
-
-path = 'dbFermeDesOurs.db'
-
-def creationTableConsignes():
-    try:
-        connexion = sqlite3.connect(path, detect_types=sqlite3.PARSE_DECLTYPES|sqlite3.PARSE_COLNAMES)
-        curseur = connexion.cursor()
-        print("Connecté à SQLite")
-        setUp_Table ='''CREATE TABLE IF NOT EXISTS tableReleveDonnees( id INTEGER PRIMARY KEY AUTOINCREMENT UNIQUE, topic TEXT, lieu TEXT, categorie TEXT,valeur REAL, date TEXT);'''
-        curseur.execute(setUp_Table)
-        connexion.commit()
-        curseur.close()
-    except sqlite3.Error as error:
-        print("Error while connecting to sqlite", error)
-    finally:
-        if connexion:
-            connexion.close()
-            print("The SQLite connection is closed")
-
-def enregistrerConsignes(topic, lieu, categorie, valeur,date):
-    try:
-        connexion = sqlite3.connect(path, detect_types=sqlite3.PARSE_DECLTYPES|sqlite3.PARSE_COLNAMES)
-        curseur = connexion.cursor()
-        print("Connected to SQLite")
-        insert_data = '''INSERT INTO tableReleveDonnees(topic, lieu, categorie, valeur,date) VALUES(?,?,?,?,?) ;'''
-        data_tuples = (topic,lieu,categorie, valeur,date)
-        curseur.execute(insert_data,data_tuples)
-        connexion.commit()
-        curseur.close()
-    except sqlite3.Error as error:
-        print("Error while connecting to sqlite", error)
-    finally:
-        if connexion:
-            connexion.close()
-            print("The SQLite connection is closed")            
+            print("Les valeurs ont été ajoutéés à "+nomTable+". Fermeture de la connection a la base de donnees")
 
 def insertDummies():
-    enregistrerReleveDonnes("FermeDesOurs/Grange/Capteurs/Anemometre/Donnees","Grange","Anemometre",22.0,"'2024-01-07 20:28:04.320'")
+    enregistrerTable("Grange","Anemometre",22.0,"'2024-01-07 20:28:04.320'")
 
     ################ MQTT ###############
 
@@ -109,21 +65,48 @@ def on_message(client, userdata, msg):
     if topic == param.topicGrangeAnemoDonnees:
         message_in=json.loads(message_decode)
         print("valeur relevée: "+str(message_in["valeuMoyenne"]) +" date de relevé : " + str(message_in["date"]))
-        enregistrerReleveDonnes("FermeDesOurs/Grange/Capteurs/Anemometre/Donnees","Grange","Anemometre",str(message_in["valeuMoyenne"]) ,str(message_in["date"]))
-        #récupérer les 3 premiers chants soit dans le topic soit changer le json
-    
+        #TODO a changer
+        enregistrerTable("tableReleveDonnees",'''INSERT INTO tableReleveDonnees(lieu, categorie, valeur,date) VALUES(?,?,?,?) ;''', (str(message_in["lieu"]),str(message_in["categorie"]),str(message_in["valeur"]) ,str(message_in["date"])))
     
 def on_disconnect(client, userdata, rc):
     print("Client Got Disconnected")
     if rc != 0: 
         print("Unexpected MQTT disconnection. Will auto-reconnect")
 
-creationTableReleveDonnes()
+
+
+################ Creation des tables ###############
+
+################ Table LogSerres ###############
+
+################ Table Releve Donnees ###############
+print("\n\n")
+creationTable("tableReleveDonnees",'''CREATE TABLE IF NOT EXISTS tableReleveDonnees( id INTEGER PRIMARY KEY AUTOINCREMENT UNIQUE,lieu TEXT, categorie TEXT,valeur REAL, date TEXT);''')
+enregistrerTable("tableReleveDonnees",'''INSERT INTO tableReleveDonnees(lieu, categorie, valeur,date) VALUES(?,?,?,?) ;''', ("Grange","Anemometre",28 ,"'2024-01-07 20:28:04.320'"))
+
+################ Table LogSerres ###############
+creationTable("tableLogSerres",'''CREATE TABLE IF NOT EXISTS tableLogSerres( id INTEGER PRIMARY KEY AUTOINCREMENT UNIQUE, type TEXT, lieu TEXT, message TEXT, date TEXT);''')
+enregistrerTable("tableLogSerres",'''INSERT INTO tableLogSerres(type, lieu, message, date) VALUES(?,?,?,?) ;''', ("informatif","grange","aled y a rien qui marche" ,"'2024-01-08 20:28:04.320'"))
+
+################ Table EtatSerres ###############
+creationTable("tableEtatSerres",'''CREATE TABLE IF NOT EXISTS tableEtatSerres( id INTEGER PRIMARY KEY AUTOINCREMENT UNIQUE, lieu TEXT, appareil TEXT, mode TEXT, etat TEXT, date TEXT);''')
+enregistrerTable("tableEtatSerres",'''INSERT INTO tableEtatSerres(lieu, appareil, mode, etat, date) VALUES(?,?,?,?,?) ;''', ("grange","ventilation","auto", "marche" ,"'2024-01-09 20:28:04.320'"))
+
+################ Table ProfilsHisto ###############
+creationTable("tableProfilsHisto",'''CREATE TABLE IF NOT EXISTS tableProfilsHisto( id INTEGER PRIMARY KEY AUTOINCREMENT UNIQUE, lieu TEXT, profil TEXT, date TEXT);''')
+enregistrerTable("tableProfilsHisto",'''INSERT INTO tableProfilsHisto(lieu, profil, date) VALUES(?,?,?) ;''', ("grange","profil3","'2024-01-09 20:28:04.320'"))
+creationTable("tableProfilsHisto",'''CREATE TABLE IF NOT EXISTS tableProfilsHisto( id INTEGER PRIMARY KEY AUTOINCREMENT UNIQUE, lieu TEXT, profil TEXT, date TEXT);''')
+enregistrerTable("tableProfilsHisto",'''INSERT INTO tableProfilsHisto(lieu, profil, date) VALUES(?,?,?) ;''', ("grange","profil4","'2024-01-07 20:28:04.320'"))
+
+################ Table ProfilsActifs ###############
+creationTable("tableProfilsActifs",'''CREATE TABLE IF NOT EXISTS tableProfilsActifs( id INTEGER PRIMARY KEY AUTOINCREMENT UNIQUE, lieu TEXT, profil TEXT, date TEXT);''')
+enregistrerTable("tableProfilsActifs",'''INSERT INTO tableProfilsActifs(lieu, profil, date) VALUES(?,?,?) ;''', ("grange","profil3","'2024-01-09 20:28:04.320'"))
 
 mqtt_client = mqtt.Client()
 mqtt_client.on_connect = on_connect
 mqtt_client.on_message = on_message
 mqtt_client.connect(param.IP_ADRESS, param.PORT)
+#TODO securiser la connection en cas de perte de connection/ mauvaise connection
 mqtt_client.loop_start()
 mqtt_client.subscribe(param.topicGrangeAnemoDonnees)
 mqtt_client.subscribe(param.topicGrangeAnemoParamRep)
