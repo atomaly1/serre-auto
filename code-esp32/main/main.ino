@@ -12,12 +12,12 @@ const uint8_t MOTEUR_A_FC_BAS = 13;
 const uint8_t MOTEUR_A_FC_HAUT = 12;
 const uint8_t MOTEUR_B_FC_BAS = 14;
 const uint8_t MOTEUR_B_FC_HAUT = 27;
-const uint8_t MOTEUR_A_DIRECTION_PIN = 34;  // 0 = Sens positif; 1 = Sens négatif (mode automatique)
-const uint8_t MOTEUR_A_VITESSE_PIN = 35;    // 0 = Arrêt; 1 = Vitesse max (mode automatique); PWM
+const uint8_t MOTEUR_A_DIRECTION_PIN = 25;  // 0 = Sens positif; 1 = Sens négatif (mode automatique)
+const uint8_t MOTEUR_A_VITESSE_PIN = 26;    // 0 = Arrêt; 1 = Vitesse max (mode automatique); PWM
 const uint8_t MOTEUR_B_DIRECTION_PIN = 32;  // 0 = Sens positif; 1 = Sens négatif (mode automatique)
 const uint8_t MOTEUR_B_VITESSE_PIN = 33;    // 0 = Arrêt; 1 = Vitesse max (mode automatique); PWM
-const uint8_t CAPTEUR_HUMIDITE_A_PIN = 26;
-const uint8_t CAPTEUR_HUMIDITE_B_PIN = 25;
+const uint8_t CAPTEUR_HUMIDITE_A_PIN = 35;
+const uint8_t CAPTEUR_HUMIDITE_B_PIN = 34;
 
 // CHIP SELECT pour la communication SPI
 const uint8_t  MODULE_ES_CS = 4;      // Module d'entrées/sorties MCP23S17
@@ -115,10 +115,10 @@ void connexionMQTT() {
 // TODO : Ajouter alerte si limite de temps dépassée + gestion des erreurs
 bool origineMoteurs() {
   if (!digitalRead(MOTEUR_A_FC_BAS)){_moteurA.setSpeed(MARCHE_RAPIDE * DESCENDRE);}
-  while (!digitalRead(MOTEUR_A_FC_BAS)){delay(100);}
+  while (!digitalRead(MOTEUR_A_FC_BAS)){delay(500);}
   _moteurA.setSpeed(ARRET);
   if (!digitalRead(MOTEUR_B_FC_BAS)){_moteurB.setSpeed(MARCHE_RAPIDE * DESCENDRE);}
-  while (!digitalRead(MOTEUR_B_FC_BAS)){delay(100);}
+  while (!digitalRead(MOTEUR_B_FC_BAS)){delay(500);}
   _moteurB.setSpeed(ARRET);
   return true;
 }
@@ -209,18 +209,10 @@ void modeAUTO() {
 
 }
 
-void testMoteurs() {
-  _moteurA.setSpeed(127);
-  delay(2000);
-  _moteurA.setSpeed(0);
-  _moteurB.setSpeed(127);
-  delay(2000);
-  _moteurB.setSpeed(0);
-}
 
 void setup() {
+  delay(5000);
   definitionEntreesSorties();
-  testMoteurs();
   origineMoteurs();
   
   _thermoA.begin(MAX31865_3WIRE);  // mettre 2WIRE ou 4WIRE en fonction du besoin
