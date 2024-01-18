@@ -2,7 +2,7 @@
 
 #include "SPI.h"
 #include "WiFi.h"
-#include "PubSubClient.h" // by Patrick Lapointe
+#include "PubSubClient.h" // EspMQTTClient by Patrick Lapointe
 #include "MCP23S17.h" // Rob Tillaart
 #include "CytronMotorDriver.h"
 #include <Adafruit_MAX31865.h>
@@ -12,17 +12,17 @@ const uint8_t MOTEUR_A_FC_BAS = 13;
 const uint8_t MOTEUR_A_FC_HAUT = 12;
 const uint8_t MOTEUR_B_FC_BAS = 14;
 const uint8_t MOTEUR_B_FC_HAUT = 27;
-const uint8_t MOTEUR_A_DIRECTION_PIN = 27;  // 0 = Sens positif; 1 = Sens négatif (mode automatique)
-const uint8_t MOTEUR_B_DIRECTION_PIN = 14;  // 0 = Sens positif; 1 = Sens négatif (mode automatique)
-const uint8_t MOTEUR_A_VITESSE_PIN = 12;    // 0 = Arrêt; 1 = Vitesse max (mode automatique); PWM
-const uint8_t MOTEUR_B_VITESSE_PIN = 13;    // 0 = Arrêt; 1 = Vitesse max (mode automatique); PWM
-const uint8_t CAPTEUR_HUMIDITE_A_PIN = 34;
-const uint8_t CAPTEUR_HUMIDITE_B_PIN = 35;
+const uint8_t MOTEUR_A_DIRECTION_PIN = 34;  // 0 = Sens positif; 1 = Sens négatif (mode automatique)
+const uint8_t MOTEUR_A_VITESSE_PIN = 35;    // 0 = Arrêt; 1 = Vitesse max (mode automatique); PWM
+const uint8_t MOTEUR_B_DIRECTION_PIN = 32;  // 0 = Sens positif; 1 = Sens négatif (mode automatique)
+const uint8_t MOTEUR_B_VITESSE_PIN = 33;    // 0 = Arrêt; 1 = Vitesse max (mode automatique); PWM
+const uint8_t CAPTEUR_HUMIDITE_A_PIN = 26;
+const uint8_t CAPTEUR_HUMIDITE_B_PIN = 25;
 
 // CHIP SELECT pour la communication SPI
 const uint8_t  MODULE_ES_CS = 4;      // Module d'entrées/sorties MCP23S17
 const uint8_t  MODULE_TEMP_A_CS = 2;  // Amplificateur de sonde de température PT100 MAX31865
-const uint8_t  MODULE_TEMP_B_CS = 2;  // Amplificateur de sonde de température PT100 MAX31865
+const uint8_t  MODULE_TEMP_B_CS = 15;  // Amplificateur de sonde de température PT100 MAX31865
 
 #define MARCHE_LENTE 127
 #define MARCHE_RAPIDE 255
@@ -49,8 +49,8 @@ CytronMD _moteurB(PWM_DIR, MOTEUR_B_VITESSE_PIN, MOTEUR_B_DIRECTION_PIN);
 MCP23S17 MODULE_ES(MODULE_ES_CS);
 
 // WiFi 
-const char *_ssid = "ElColoc";          // Entrez votre SSID WiFi  
-const char *_motDePasse = "ASXzdc123*"; // Entrez votre mot de passe WiFi 
+const char *_ssid = "Alban";          // Entrez votre SSID WiFi  
+const char *_motDePasse = "11111110"; // Entrez votre mot de passe WiFi 
 
 // MQTT Broker  
 const char *_mqttBroker = "172.20.10.4"; 
@@ -66,12 +66,12 @@ bool aeration_Mode_S, ventilation_Mode_S;
 bool moteurA_Monter_BP, moteurA_Descendre_BP, moteurB_Monter_BP,  moteurB_Descendre_BP;
 bool moteurA_FC_Haut, moteurA_FC_Bas, moteurB_FC_Haut, moteurB_FC_Bas;
 bool aeration_MarcheArret_S;
-bool acquittement_ BP;
+bool acquittement_BP;
 
 bool acquitter, erreur;
 bool ventilation_Etat; // 0 = Arrêt, 1 = Marche
-uint8_t moteurs_A_Etat; // 0 = Arrêt; 1 = Monter; 2 = Descendre
-uint8_t moteurs_B_Etat; // 0 = Arrêt; 1 = Monter; 2 = Descendre
+uint8_t moteurA_Etat; // 0 = Arrêt; 1 = Monter; 2 = Descendre
+uint8_t moteurB_Etat; // 0 = Arrêt; 1 = Monter; 2 = Descendre
 
 void definitionEntreesSorties() {
   // par défaut les modes des pins sont des entrées (INPUT)
@@ -109,8 +109,8 @@ void connexionMQTT() {
 
 // TODO : Ajouter alerte si limite de temps dépassée + gestion des erreurs
 bool origineMoteurs() {
-  if (!digitalRead(MOTEUR_A_FC_BAS)){_moteurA.setSpeed(MARCHE_RAPIDE * DESCENDRE);}
-  while (!digitalRead(MOTEUR_A_FC_BAS)){}
+  if (digitalRead(MOTEUR_A_FC_BAS)){_moteurA.setSpeed(MARCHE_RAPIDE * DESCENDRE);}
+  while (digitalRead(MOTEUR_A_FC_BAS)){}
   _moteurA.setSpeed(ARRET);
   if (!digitalRead(MOTEUR_B_FC_BAS)){_moteurB.setSpeed(MARCHE_RAPIDE * DESCENDRE);}
   while (!digitalRead(MOTEUR_B_FC_BAS)){}
@@ -128,7 +128,7 @@ float acquisitionHumidite() {
   uint16_t humiditeA = 0;
   uint16_t humiditeB = 0;
   uint8_t echantillonage = 3;
-  for (uint8_t i = 0, i < echantillonage, i++) {
+  for (uint8_t i = 0; i < echantillonage; i++) {
     humiditeA += analogReadMilliVolts(CAPTEUR_HUMIDITE_A_PIN);
     humiditeB += analogReadMilliVolts(CAPTEUR_HUMIDITE_B_PIN);
     delay(2000);
@@ -141,7 +141,7 @@ float acquisitionTemperature() {
   uint16_t temperatureA = 0;
   uint16_t temperatureB = 0;
   uint8_t echantillonage = 3;
-  for (uint8_t i = 0, i < echantillonage, i++) {
+  for (uint8_t i = 0; i < echantillonage; i++) {
     temperatureA += _thermoA.temperature(RNOMINAL, RREF);
     temperatureB += _thermoB.temperature(RNOMINAL, RREF);
     delay(2000);
@@ -167,9 +167,9 @@ void lireEntrees() {
 }
 
 void ecrireSorties() {
-  module_ES_Sorties = (ventilation_Etat << 7) | (0 << 6) | (0 << 5) | (ventilation_Etat << 4) | (((moteurA_Etat>0)?1:0) << 3) | ((moteurB_Etat>0)?1:0) << 2) | (erreur << 1) | acquitter;
+  module_ES_Sorties = ((ventilation_Etat << 7) | (0 << 6) | (0 << 5) | (ventilation_Etat << 4) | (((moteurA_Etat>0)?1:0) << 3) | (((moteurB_Etat>0)?1:0) << 2) | (erreur << 1) | acquitter);
   
-  switch(moteurs_A_Etat) {
+  switch(moteurA_Etat) {
     case 0:
       _moteurA.setSpeed(MARCHE_LENTE * ARRET);
       break;
@@ -179,8 +179,9 @@ void ecrireSorties() {
     case 2:
       _moteurA.setSpeed(MARCHE_LENTE * DESCENDRE);
       break;
+  }
       
-  switch(moteurs_B_Etat) {
+  switch(moteurB_Etat) {
     case 0:
       _moteurB.setSpeed(MARCHE_LENTE * ARRET);
       break;
@@ -190,26 +191,31 @@ void ecrireSorties() {
     case 2:
       _moteurB.setSpeed(MARCHE_LENTE * DESCENDRE);
       break;
+  }
 }
 
 void modeMANU(){
+  delay(10);
  
 }
 
 void modeAUTO() {
-  
+  delay(10);
+
 }
 
 void setup() {
   definitionEntreesSorties();
-  _thermo.begin(MAX31865_3WIRE);  // mettre 2WIRE ou 4WIRE en fonction du besoin
-  
+  _thermoA.begin(MAX31865_3WIRE);  // mettre 2WIRE ou 4WIRE en fonction du besoin
+  _thermoB.begin(MAX31865_3WIRE);  // mettre 2WIRE ou 4WIRE en fonction du besoin
+
+
   SPI.begin();
   MODULE_ES.begin();
-  MCP.pinMode8(ENTREES, 0xFF);      //  0x00 = output , 0xFF = input
+  MODULE_ES.pinMode8(ENTREES, 0xFF);      //  0x00 = output , 0xFF = input
   
-  MCP.pinMode8(SORTIES, 0x00);
-  MCP.setPolarity8(0, 0xFF);  // 0 = NC, 1 = NO
+  MODULE_ES.pinMode8(SORTIES, 0x00);
+  MODULE_ES.setPolarity8(0, 0xFF);  // 0 = NC, 1 = NO
   
   connexionWiFi();
   connexionMQTT();
