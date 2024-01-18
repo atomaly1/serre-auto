@@ -43,10 +43,10 @@ const uint8_t  MODULE_TEMP_B_CS = 15;  // Amplificateur de sonde de température
 Adafruit_MAX31865 _thermoA = Adafruit_MAX31865(MODULE_TEMP_A_CS);
 Adafruit_MAX31865 _thermoB = Adafruit_MAX31865(MODULE_TEMP_B_CS);
 
+MCP23S17 MODULE_ES(MODULE_ES_CS);
+
 CytronMD _moteurA(PWM_DIR, MOTEUR_A_VITESSE_PIN, MOTEUR_A_DIRECTION_PIN);
 CytronMD _moteurB(PWM_DIR, MOTEUR_B_VITESSE_PIN, MOTEUR_B_DIRECTION_PIN);
-
-MCP23S17 MODULE_ES(MODULE_ES_CS);
 
 // WiFi 
 const char *_ssid = "Alban";          // Entrez votre SSID WiFi  
@@ -79,6 +79,11 @@ void definitionEntreesSorties() {
   pinMode(MOTEUR_B_DIRECTION_PIN, OUTPUT);
   pinMode(MOTEUR_A_VITESSE_PIN, OUTPUT);
   pinMode(MOTEUR_B_VITESSE_PIN, OUTPUT);
+
+  pinMode(MOTEUR_A_FC_BAS, INPUT);
+  pinMode(MOTEUR_A_FC_HAUT, INPUT);
+  pinMode(MOTEUR_B_FC_BAS, INPUT);
+  pinMode(MOTEUR_B_FC_HAUT, INPUT);
 }
 
 void initialisationVariables() {
@@ -109,11 +114,11 @@ void connexionMQTT() {
 
 // TODO : Ajouter alerte si limite de temps dépassée + gestion des erreurs
 bool origineMoteurs() {
-  if (digitalRead(MOTEUR_A_FC_BAS)){_moteurA.setSpeed(MARCHE_RAPIDE * DESCENDRE);}
-  while (digitalRead(MOTEUR_A_FC_BAS)){}
+  if (!digitalRead(MOTEUR_A_FC_BAS)){_moteurA.setSpeed(MARCHE_RAPIDE * DESCENDRE);}
+  while (!digitalRead(MOTEUR_A_FC_BAS)){delay(100);}
   _moteurA.setSpeed(ARRET);
   if (!digitalRead(MOTEUR_B_FC_BAS)){_moteurB.setSpeed(MARCHE_RAPIDE * DESCENDRE);}
-  while (!digitalRead(MOTEUR_B_FC_BAS)){}
+  while (!digitalRead(MOTEUR_B_FC_BAS)){delay(100);}
   _moteurB.setSpeed(ARRET);
   return true;
 }
@@ -204,8 +209,20 @@ void modeAUTO() {
 
 }
 
+void testMoteurs() {
+  _moteurA.setSpeed(127);
+  delay(2000);
+  _moteurA.setSpeed(0);
+  _moteurB.setSpeed(127);
+  delay(2000);
+  _moteurB.setSpeed(0);
+}
+
 void setup() {
   definitionEntreesSorties();
+  testMoteurs();
+  origineMoteurs();
+  
   _thermoA.begin(MAX31865_3WIRE);  // mettre 2WIRE ou 4WIRE en fonction du besoin
   _thermoB.begin(MAX31865_3WIRE);  // mettre 2WIRE ou 4WIRE en fonction du besoin
 
@@ -219,7 +236,7 @@ void setup() {
   
   connexionWiFi();
   connexionMQTT();
-  origineMoteurs();
+  //origineMoteurs();
 }
 
 void loop() {
@@ -230,11 +247,11 @@ void loop() {
   if (!client.connected()) {connexionMQTT();}
 
   // Lecture des entrées
-  lireEntrees();
+  //lireEntrees();
   
   
   // Traitement des données
   
   // Ecriture des sorties
-  ecrireSorties();  
+  //ecrireSorties();  
 }
