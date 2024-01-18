@@ -65,7 +65,7 @@ uint8_t module_ES_Entrees, module_ES_Sorties;
 bool aeration_Mode_S, ventilation_Mode_S;
 bool moteurA_Monter_BP, moteurA_Descendre_BP, moteurB_Monter_BP,  moteurB_Descendre_BP;
 bool moteurA_FC_Haut, moteurA_FC_Bas, moteurB_FC_Haut, moteurB_FC_Bas;
-bool aeration_MarcheArret_S;
+bool ventilation_MarcheArret_S;
 bool acquittement_BP;
 
 bool acquitter, erreur;
@@ -161,7 +161,7 @@ void lireEntrees() {
   moteurB_FC_Bas    = digitalRead(MOTEUR_B_FC_BAS);
   
   module_ES_Entrees       = MODULE_ES.read8(ENTREES);
-  aeration_MarcheArret_S  = (module_ES_Entrees & 0x01) >> 0; // Premier bit des entrées
+  ventilation_MarcheArret_S  = (module_ES_Entrees & 0x01) >> 0; // Premier bit des entrées
   acquittement_BP         = (module_ES_Entrees & 0x02) >> 1; // Deuxième bit des entrées
   aeration_Mode_S         = (module_ES_Entrees & 0x04) >> 2; // Troisième bit des entrées
   moteurA_Monter_BP       = (module_ES_Entrees & 0x08) >> 3; // Quatrième bit des entrées
@@ -213,7 +213,6 @@ void modeAUTO() {
 void setup() {
   delay(5000);
   definitionEntreesSorties();
-  origineMoteurs();
   
   _thermoA.begin(MAX31865_3WIRE);  // mettre 2WIRE ou 4WIRE en fonction du besoin
   _thermoB.begin(MAX31865_3WIRE);  // mettre 2WIRE ou 4WIRE en fonction du besoin
@@ -226,24 +225,31 @@ void setup() {
   MODULE_ES.pinMode8(SORTIES, 0x00);
   MODULE_ES.setPolarity8(0, 0xFF);  // 0 = NC, 1 = NO
   
-  connexionWiFi();
-  connexionMQTT();
-  //origineMoteurs();
+  //connexionWiFi();
+  //connexionMQTT();
+  origineMoteurs();
 }
 
 void loop() {
   // Vérifier la connexion au réseau WiFi
-  if (WiFi.status() != WL_CONNECTED) {connexionWiFi();}
+  //if (WiFi.status() != WL_CONNECTED) {connexionWiFi();}
 
   // Vérifier la connexion au broker MQTT
-  if (!client.connected()) {connexionMQTT();}
+  //if (!client.connected()) {connexionMQTT();}
 
   // Lecture des entrées
-  //lireEntrees();
-  
+  lireEntrees();
   
   // Traitement des données
+  if (!aeration_Mode_S && moteurA_Monter_BP && !moteurA_FC_Haut) {moteurA_Etat = 1;}
+  else if (!aeration_Mode_S && moteurA_Descendre_BP && !moteurA_FC_Bas) {moteurA_Etat = 2;}
+  else {moteurA_Etat = 0;}
+  if (!aeration_Mode_S && moteurB_Monter_BP && !moteurB_FC_Haut) {moteurB_Etat = 1;}
+  else if (!aeration_Mode_S && moteurB_Descendre_BP && !moteurB_FC_Bas) {moteurB_Etat = 2;}
+  else {moteurA_Etat = 0;}
+  if (!ventilation_Mode_S && ventilation_MarcheArret_S) {ventilation_Etat = 1;}
+  else {ventilation_Etat = 0;}
   
   // Ecriture des sorties
-  //ecrireSorties();  
+  ecrireSorties();  
 }
