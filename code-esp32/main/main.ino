@@ -162,13 +162,21 @@ void lireEntrees() {
   
   module_ES_Entrees       = MODULE_ES.read8(ENTREES);
   ventilation_MarcheArret_S  = (module_ES_Entrees & 0x01) >> 0; // Premier bit des entrées
+  ventilation_MarcheArret_S = !ventilation_MarcheArret_S;
   acquittement_BP         = (module_ES_Entrees & 0x02) >> 1; // Deuxième bit des entrées
+  acquittement_BP = !acquittement_BP;
   aeration_Mode_S         = (module_ES_Entrees & 0x04) >> 2; // Troisième bit des entrées
+  aeration_Mode_S = !aeration_Mode_S;
   moteurA_Monter_BP       = (module_ES_Entrees & 0x08) >> 3; // Quatrième bit des entrées
+  moteurA_Monter_BP = !moteurA_Monter_BP;
   moteurA_Descendre_BP    = (module_ES_Entrees & 0x10) >> 4; // Cinquième bit des entrées
+  moteurA_Descendre_BP = !moteurA_Descendre_BP;
   moteurB_Monter_BP       = (module_ES_Entrees & 0x20) >> 5; // Sixième bit des entrées
+  moteurB_Monter_BP = !moteurB_Monter_BP;
   moteurB_Descendre_BP    = (module_ES_Entrees & 0x40) >> 6; // Septième bit des entrées
-  ventilation_Mode_S      = (module_ES_Entrees & 0x80) >> 7; // Huitième bit des entrées  
+  moteurB_Descendre_BP = !moteurB_Descendre_BP;
+  ventilation_Mode_S      = (module_ES_Entrees & 0x80) >> 7; // Huitième bit des entrées
+  ventilation_Mode_S = !ventilation_Mode_S;
 }
 
 void ecrireSorties() {
