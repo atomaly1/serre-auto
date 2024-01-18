@@ -1,6 +1,6 @@
  #include "CytronMotorDriver.h"
 
-CytronMD motor1(PWM_DIR, 26, 25);  // PWM 1 = Pin 12, DIR 1 = Pin 13.
+CytronMD motor1(PWM_DIR, 26, 25);  // PWM 1 = Pin 26, DIR 1 = Pin 25.
 
 int vitesse_motor_1 = 0;
 
