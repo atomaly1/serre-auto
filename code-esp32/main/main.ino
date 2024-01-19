@@ -1,5 +1,7 @@
 // V = voyant; BP = bouton poussoir; S = sélecteur; FC = fin de course; CS = chip select; ES = entrée/sortie; TEMP = température
 
+// Alimentation ? https://docs.ai-thinker.com/_media/nodemcu32-s_specification_v1.3.pdf p.13
+
 #include "SPI.h"
 #include "WiFi.h"
 #include "PubSubClient.h" // EspMQTTClient by Patrick Lapointe
@@ -135,9 +137,10 @@ float acquisitionHumidite() {
   uint8_t echantillonage = 3;
   for (uint8_t i = 0; i < echantillonage; i++) {
     humiditeA += analogReadMilliVolts(CAPTEUR_HUMIDITE_A_PIN);
-    humiditeB += analogReadMilliVolts(CAPTEUR_HUMIDITE_B_PIN);
+    //humiditeB += analogReadMilliVolts(CAPTEUR_HUMIDITE_B_PIN);
     delay(2000);
   }
+  humiditeB = humiditeA;
   return (0.03892*0.5*(humiditeA+humiditeB)/echantillonage) - 42.017;
 }
 
@@ -148,9 +151,10 @@ float acquisitionTemperature() {
   uint8_t echantillonage = 3;
   for (uint8_t i = 0; i < echantillonage; i++) {
     temperatureA += _thermoA.temperature(RNOMINAL, RREF);
-    temperatureB += _thermoB.temperature(RNOMINAL, RREF);
+    //temperatureB += _thermoB.temperature(RNOMINAL, RREF);
     delay(2000);
   }
+  temperatureB = temperatureA;
   return 0.5 * (temperatureA + temperatureB) / echantillonage;
 }
 
@@ -160,26 +164,27 @@ void lireEntrees() {
   moteurB_FC_Haut   = digitalRead(MOTEUR_B_FC_HAUT);
   moteurB_FC_Bas    = digitalRead(MOTEUR_B_FC_BAS);
   
-  module_ES_Entrees       = MODULE_ES.read8(ENTREES);
-  ventilation_MarcheArret_S  = (module_ES_Entrees & 0x01) >> 0; // Premier bit des entrées
+  module_ES_Entrees         = MODULE_ES.read8(ENTREES);
+  ventilation_MarcheArret_S = (module_ES_Entrees & 0x01) >> 0; // Premier bit des entrées
   ventilation_MarcheArret_S = !ventilation_MarcheArret_S;
-  acquittement_BP         = (module_ES_Entrees & 0x02) >> 1; // Deuxième bit des entrées
-  acquittement_BP = !acquittement_BP;
-  aeration_Mode_S         = (module_ES_Entrees & 0x04) >> 2; // Troisième bit des entrées
-  aeration_Mode_S = !aeration_Mode_S;
-  moteurA_Monter_BP       = (module_ES_Entrees & 0x08) >> 3; // Quatrième bit des entrées
-  moteurA_Monter_BP = !moteurA_Monter_BP;
-  moteurA_Descendre_BP    = (module_ES_Entrees & 0x10) >> 4; // Cinquième bit des entrées
-  moteurA_Descendre_BP = !moteurA_Descendre_BP;
-  moteurB_Monter_BP       = (module_ES_Entrees & 0x20) >> 5; // Sixième bit des entrées
-  moteurB_Monter_BP = !moteurB_Monter_BP;
-  moteurB_Descendre_BP    = (module_ES_Entrees & 0x40) >> 6; // Septième bit des entrées
-  moteurB_Descendre_BP = !moteurB_Descendre_BP;
-  ventilation_Mode_S      = (module_ES_Entrees & 0x80) >> 7; // Huitième bit des entrées
-  ventilation_Mode_S = !ventilation_Mode_S;
+  acquittement_BP           = (module_ES_Entrees & 0x02) >> 1; // Deuxième bit des entrées
+  acquittement_BP           = !acquittement_BP;
+  aeration_Mode_S           = (module_ES_Entrees & 0x04) >> 2; // Troisième bit des entrées
+  aeration_Mode_S           = !aeration_Mode_S;
+  moteurA_Monter_BP         = (module_ES_Entrees & 0x08) >> 3; // Quatrième bit des entrées
+  moteurA_Monter_BP         = !moteurA_Monter_BP;
+  moteurA_Descendre_BP      = (module_ES_Entrees & 0x10) >> 4; // Cinquième bit des entrées
+  moteurA_Descendre_BP      = !moteurA_Descendre_BP;
+  moteurB_Monter_BP         = (module_ES_Entrees & 0x20) >> 5; // Sixième bit des entrées
+  moteurB_Monter_BP         = !moteurB_Monter_BP;
+  moteurB_Descendre_BP      = (module_ES_Entrees & 0x40) >> 6; // Septième bit des entrées
+  moteurB_Descendre_BP      = !moteurB_Descendre_BP;
+  ventilation_Mode_S        = (module_ES_Entrees & 0x80) >> 7; // Huitième bit des entrées
+  ventilation_Mode_S        = !ventilation_Mode_S;
 }
 
 void ecrireSorties() {
+  // 7 = Marche/Arrêt Ventilation; 4 = Voyant Ventilation; 3 = Voyant moteur A; 2 = Voyant moteur B; 1 = Voyant erreur; 0 = Voyant acquitement
   module_ES_Sorties = ((ventilation_Etat << 7) | (0 << 6) | (0 << 5) | (ventilation_Etat << 4) | (((moteurA_Etat>0)?1:0) << 3) | (((moteurB_Etat>0)?1:0) << 2) | (erreur << 1) | acquitter);
   
   switch(moteurA_Etat) {
@@ -191,6 +196,9 @@ void ecrireSorties() {
       break;
     case 2:
       _moteurA.setSpeed(MARCHE_LENTE * DESCENDRE);
+      break;
+    default:
+      _moteurA.setSpeed(MARCHE_LENTE * ARRET);
       break;
   }
       
@@ -204,32 +212,49 @@ void ecrireSorties() {
     case 2:
       _moteurB.setSpeed(MARCHE_LENTE * DESCENDRE);
       break;
+    default:
+      _moteurB.setSpeed(MARCHE_LENTE * ARRET);
+      break;
   }
 }
 
-void modeMANU(){
-  delay(10);
- 
+void modeManuel(){
+  if (moteurA_Monter_BP && !moteurA_FC_Haut) {
+      moteurA_Etat = 1;
+      } else if (moteurA_Descendre_BP && !moteurA_FC_Bas) {
+        moteurA_Etat = 2;
+        } else {moteurA_Etat = 0;}
+  if (moteurB_Monter_BP && !moteurB_FC_Haut) {
+    moteurB_Etat = 1;
+    } else if (moteurB_Descendre_BP && !moteurB_FC_Bas) {
+      moteurB_Etat = 2;
+      } else {moteurB_Etat = 0;}
+  if (ventilation_MarcheArret_S) {
+    ventilation_Etat = 1;
+    } else {ventilation_Etat = 0;}
 }
 
-void modeAUTO() {
-  delay(10);
+void modeAutomatique() {
+  delay(500);
 
 }
 
 
 void setup() {
+  // temporisation pour que tous les composants soit bien allumés
   delay(5000);
+
   definitionEntreesSorties();
+
+  // Communication SPI
+  SPI.begin();
   
   _thermoA.begin(MAX31865_3WIRE);  // mettre 2WIRE ou 4WIRE en fonction du besoin
-  _thermoB.begin(MAX31865_3WIRE);  // mettre 2WIRE ou 4WIRE en fonction du besoin
+  //_thermoB.begin(MAX31865_3WIRE);  // mettre 2WIRE ou 4WIRE en fonction du besoin
 
-
-  SPI.begin();
+  // Configuration du module d'entrées/sorties
   MODULE_ES.begin();
   MODULE_ES.pinMode8(ENTREES, 0xFF);      //  0x00 = output , 0xFF = input
-  
   MODULE_ES.pinMode8(SORTIES, 0x00);
   MODULE_ES.setPolarity8(0, 0xFF);  // 0 = NC, 1 = NO
   
@@ -249,14 +274,17 @@ void loop() {
   lireEntrees();
   
   // Traitement des données
-  if (!aeration_Mode_S && moteurA_Monter_BP && !moteurA_FC_Haut) {moteurA_Etat = 1;}
-  else if (!aeration_Mode_S && moteurA_Descendre_BP && !moteurA_FC_Bas) {moteurA_Etat = 2;}
-  else {moteurA_Etat = 0;}
-  if (!aeration_Mode_S && moteurB_Monter_BP && !moteurB_FC_Haut) {moteurB_Etat = 1;}
-  else if (!aeration_Mode_S && moteurB_Descendre_BP && !moteurB_FC_Bas) {moteurB_Etat = 2;}
-  else {moteurA_Etat = 0;}
-  if (!ventilation_Mode_S && ventilation_MarcheArret_S) {ventilation_Etat = 1;}
-  else {ventilation_Etat = 0;}
+
+  // Mode manuel
+  if (!aeration_Mode_S) {
+    modeManuel();
+  }
+  
+  // Mode automatique
+  if (aeration_Mode_S) {
+    modeAutomatique();
+  }
+  
   
   // Ecriture des sorties
   ecrireSorties();  
